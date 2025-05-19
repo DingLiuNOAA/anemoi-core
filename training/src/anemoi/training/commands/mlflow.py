@@ -137,29 +137,20 @@ class MlFlow(Command):
     @staticmethod
     def run(args: argparse.Namespace) -> None:
         if args.subcommand == "login":
-            from anemoi.training.diagnostics.mlflow.auth import TokenAuth
 
-            url = args.url or TokenAuth.load_config().get("url")
+            url = args.url
 
             if not url:
                 msg = "No URL provided and no past URL found. Rerun the command with --url"
                 raise ValueError(msg)
 
-            TokenAuth(url=url).login(force_credentials=args.force_credentials)
             return
 
         if args.subcommand == "sync":
             from anemoi.training.diagnostics.mlflow.utils import health_check
             from anemoi.training.utils.mlflow_sync import MlFlowSync
 
-            if args.authentication:
-                from anemoi.training.diagnostics.mlflow.auth import TokenAuth
-
-                auth = TokenAuth(url=args.destination)
-                auth.login()
-                auth.authenticate()
-
-            health_check(args.destination)
+            #health_check(args.destination)
 
             log_level = "DEBUG" if args.verbose else "INFO"
 
@@ -178,7 +169,6 @@ class MlFlow(Command):
             from hydra import compose
             from hydra import initialize
 
-            from anemoi.training.diagnostics.mlflow.client import AnemoiMlflowClient
             from anemoi.training.diagnostics.mlflow.logger import AnemoiMLflowLogger
 
             # Load configuration and resolve schema
@@ -186,7 +176,7 @@ class MlFlow(Command):
                 config = compose(config_name=args.config_name)
 
             # Create MLflow client and get experiment
-            client = AnemoiMlflowClient(config.diagnostics.log.mlflow.tracking_uri, authentication=True)
+            client = MlflowClient(config.diagnostics.log.mlflow.tracking_uri)
             experiment = client.get_experiment_by_name(config.diagnostics.log.mlflow.experiment_name)
             experiment_id = (
                 experiment.experiment_id
